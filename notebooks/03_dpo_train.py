@@ -22,6 +22,8 @@
 # 3. **Eval held-out.** Cặp eval không trùng câu hỏi với huấn luyện (NB2).
 
 # %%
+import os
+os.environ.setdefault("CUDA_VISIBLE_DEVICES", "0")
 import sys
 from pathlib import Path
 

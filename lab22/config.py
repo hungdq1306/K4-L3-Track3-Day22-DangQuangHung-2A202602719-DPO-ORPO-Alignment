@@ -11,6 +11,9 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+# Unsloth only supports single GPU (Kaggle T4x2 provides 2 GPUs, causing multi-GPU split errors)
+os.environ.setdefault("CUDA_VISIBLE_DEVICES", "0")
+
 
 def find_repo_root(start: Path | None = None) -> Path:
     """Walk up from `start` to the directory that contains the `lab22` package."""

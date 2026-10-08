@@ -15,6 +15,8 @@
 
 # %%
 import json
+import os
+os.environ.setdefault("CUDA_VISIBLE_DEVICES", "0")
 import sys
 from pathlib import Path
 

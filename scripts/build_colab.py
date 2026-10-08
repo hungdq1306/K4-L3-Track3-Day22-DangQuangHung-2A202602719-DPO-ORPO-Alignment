@@ -108,6 +108,8 @@ def render(tier: str) -> dict:
         md("## A. Setup"),
         code(
             "import os\n"
+            "# Kaggle T4x2 provides 2 GPUs. Unsloth requires single-GPU; setting device 0 prevents multi-GPU split errors.\n"
+            'os.environ["CUDA_VISIBLE_DEVICES"] = "0"\n'
             f'os.environ["COMPUTE_TIER"] = "{tier}"\n'
             "# NB4 judges automatically with a panel of two local reward models (no key needed).\n"
             "# Optional API judge as a cross-check (two A/B orders):\n"

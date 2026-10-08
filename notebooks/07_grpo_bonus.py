@@ -29,6 +29,8 @@
 # | Chi phí | 2 forward / cặp | G lần sinh / câu hỏi |
 
 # %%
+import os
+os.environ.setdefault("CUDA_VISIBLE_DEVICES", "0")
 import sys
 from pathlib import Path
 

@@ -18,6 +18,8 @@
 # > tiếng Việt kiểu Alpaca. Loss chỉ tính trên phần trả lời (`train_on_responses_only`).
 
 # %%
+import os
+os.environ.setdefault("CUDA_VISIBLE_DEVICES", "0")
 import sys
 from pathlib import Path
 
