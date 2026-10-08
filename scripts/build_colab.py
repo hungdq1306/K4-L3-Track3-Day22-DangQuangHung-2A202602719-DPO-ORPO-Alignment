@@ -110,6 +110,7 @@ def render(tier: str) -> dict:
             "import os\n"
             "# Kaggle T4x2 provides 2 GPUs. Unsloth requires single-GPU; setting device 0 prevents multi-GPU split errors.\n"
             'os.environ["CUDA_VISIBLE_DEVICES"] = "0"\n'
+            'os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"\n'
             f'os.environ["COMPUTE_TIER"] = "{tier}"\n'
             "# NB4 judges automatically with a panel of two local reward models (no key needed).\n"
             "# Optional API judge as a cross-check (two A/B orders):\n"
@@ -132,33 +133,35 @@ def render(tier: str) -> dict:
     for module in sorted((REPO / "lab22").glob("*.py")):
         body = module.read_text(encoding="utf-8")
         cells.append(code(f"%%writefile lab22/{module.name}\n{body}"))
+    zip_code = (
+        "# Nén các artifacts thành file zip để nộp bài\n"
+        "import zipfile\n"
+        "from pathlib import Path\n\n"
+        "zip_path = Path('lab22_submission.zip')\n"
+        "with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:\n"
+        "    for folder in ['submission/screenshots', 'data/eval', 'data/pref', 'adapters/dpo', 'adapters/variants', 'adapters/grpo']:\n"
+        "        p = Path(folder)\n"
+        "        if p.exists():\n"
+        "            for f in p.rglob('*'):\n"
+        "                if f.is_file() and not f.name.endswith('.safetensors') and not f.name.endswith('.bin') and not f.name.endswith('.gguf'):\n"
+        "                    zf.write(f, arcname=str(f))\n"
+        "    for f in Path('adapters/sft-mini').glob('*.json'):\n"
+        "        zf.write(f, arcname=str(f))\n"
+        "    for f in Path('models/sft-merged').glob('*.json'):\n"
+        "        zf.write(f, arcname=str(f))\n\n"
+        "print(f'✓ Đã tạo/cập nhật {zip_path.resolve()} ({zip_path.stat().st_size / 1024:.1f} KB).')"
+    )
     for i, (stem, kind) in enumerate(STAGES):
         if i:
             # One Colab kernel runs every stage, so drop the previous stage's GPU objects.
             cells.append(code(RELEASE_GPU))
         cells.append(md(f"---\n# ⏵ `notebooks/{stem}.py` ({kind})"))
         cells.extend(percent_cells(REPO / "notebooks" / f"{stem}.py"))
-    cells.append(md("---\n# Đóng gói artifacts nộp bài (Zip submission)"))
-    cells.append(
-        code(
-            "# Chạy cell này sau khi chạy xong để nén các artifacts thành file zip tải về máy\n"
-            "import zipfile\n"
-            "from pathlib import Path\n\n"
-            "zip_path = Path('lab22_submission.zip')\n"
-            "with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:\n"
-            "    for folder in ['submission/screenshots', 'data/eval', 'data/pref', 'adapters/dpo']:\n"
-            "        p = Path(folder)\n"
-            "        if p.exists():\n"
-            "            for f in p.rglob('*'):\n"
-            "                if f.is_file() and not f.name.endswith('.safetensors') and not f.name.endswith('.bin'):\n"
-            "                    zf.write(f, arcname=str(f))\n"
-            "    for f in Path('adapters/sft-mini').glob('*.json'):\n"
-            "        zf.write(f, arcname=str(f))\n"
-            "    for f in Path('models/sft-merged').glob('*.json'):\n"
-            "        zf.write(f, arcname=str(f))\n\n"
-            "print(f'✓ Đã tạo {zip_path.resolve()} ({zip_path.stat().st_size / 1024:.1f} KB).')"
-        )
-    )
+        if stem == "04_compare_and_eval":
+            cells.append(md("---\n# Đóng gói kết quả phần bắt buộc (Core Submission Zip)"))
+            cells.append(code(zip_code))
+    cells.append(md("---\n# Đóng gói toàn bộ artifacts (Final Submission Zip)"))
+    cells.append(code(zip_code))
     return {
         "cells": cells,
         "metadata": {
