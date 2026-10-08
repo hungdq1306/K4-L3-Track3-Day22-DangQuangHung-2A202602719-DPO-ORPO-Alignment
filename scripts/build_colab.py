@@ -118,23 +118,45 @@ def render(tier: str) -> dict:
         ),
         code(f"!pip install -q {pins}" + (' "vllm>=0.10"' if big else "")),
         code(
+            "import os\n"
             "from pathlib import Path\n"
-            f'WORK = Path("{WORKDIR}")\n'
+            "WORK = Path('/kaggle/working/lab22') if Path('/kaggle/working').exists() else Path('/content/lab22')\n"
             '(WORK / "lab22").mkdir(parents=True, exist_ok=True)\n'
             "os.chdir(WORK)\n"
-            "print(Path.cwd())"
+            "print(f'Working directory: {Path.cwd()}')"
         ),
         md("### Helper package `lab22/` (same files as the repo)"),
     ]
     for module in sorted((REPO / "lab22").glob("*.py")):
         body = module.read_text(encoding="utf-8")
-        cells.append(code(f"%%writefile {WORKDIR}/lab22/{module.name}\n{body}"))
+        cells.append(code(f"%%writefile lab22/{module.name}\n{body}"))
     for i, (stem, kind) in enumerate(STAGES):
         if i:
             # One Colab kernel runs every stage, so drop the previous stage's GPU objects.
             cells.append(code(RELEASE_GPU))
         cells.append(md(f"---\n# ⏵ `notebooks/{stem}.py` ({kind})"))
         cells.extend(percent_cells(REPO / "notebooks" / f"{stem}.py"))
+    cells.append(md("---\n# Đóng gói artifacts nộp bài (Zip submission)"))
+    cells.append(
+        code(
+            "# Chạy cell này sau khi chạy xong để nén các artifacts thành file zip tải về máy\n"
+            "import zipfile\n"
+            "from pathlib import Path\n\n"
+            "zip_path = Path('lab22_submission.zip')\n"
+            "with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:\n"
+            "    for folder in ['submission/screenshots', 'data/eval', 'data/pref', 'adapters/dpo']:\n"
+            "        p = Path(folder)\n"
+            "        if p.exists():\n"
+            "            for f in p.rglob('*'):\n"
+            "                if f.is_file() and not f.name.endswith('.safetensors') and not f.name.endswith('.bin'):\n"
+            "                    zf.write(f, arcname=str(f))\n"
+            "    for f in Path('adapters/sft-mini').glob('*.json'):\n"
+            "        zf.write(f, arcname=str(f))\n"
+            "    for f in Path('models/sft-merged').glob('*.json'):\n"
+            "        zf.write(f, arcname=str(f))\n\n"
+            "print(f'✓ Đã tạo {zip_path.resolve()} ({zip_path.stat().st_size / 1024:.1f} KB).')"
+        )
+    )
     return {
         "cells": cells,
         "metadata": {
